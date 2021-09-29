@@ -43,7 +43,7 @@ print("Depth Scale is: ", depth_scale)
 
 # We will be removing the background of objects more than
 #  clipping_distance_in_meters meters away
-clipping_distance_in_meters = 0.25  # 排除する距離パラメータ[m]
+clipping_distance_in_meters = 3.00  # 排除する距離パラメータ[m]
 clipping_distance = clipping_distance_in_meters / depth_scale  # depth基準作り
 
 # Create an align object
@@ -93,7 +93,7 @@ print("Depth Scale is: ", depth_scale1)
 
 # We will be removing the background of objects more than
 #  clipping_distance_in_meters meters away
-clipping_distance_in_meters1 = 0.25  # 排除する距離パラメータ[m]
+clipping_distance_in_meters1 = 3.00  # 排除する距離パラメータ[m] 理想範囲0.28~3.00[m]
 clipping_distance1 = clipping_distance_in_meters1 / depth_scale1  # depth基準作り
 
 # Create an align object
@@ -134,28 +134,28 @@ try:
                                              cv2.COLORMAP_BONE)  # α=透明度 COLORMAP_BONE
 
         # 画質変更
-     #   h = 320
-     #   w = 240
-     #   dst_R = cv2.resize(color_image_R, dsize=(w, h))
-     #   dst_L = cv2.resize(color_image_L, dsize=(w, h))
-     #   dst_depth_R = cv2.resize(depth_image_R, dsize=(w, h))
-     #   dst_depth_L = cv2.resize(depth_image_L, dsize=(w, h))
-     #   depth_gry_R = cv2.resize(depth_colormap_R, dsize=(w, h))
-     #   depth_gry_L = cv2.resize(depth_colormap_L, dsize=(w, h))
+        #   h = 320
+        #   w = 240
+        #   dst_R = cv2.resize(color_image_R, dsize=(w, h))
+        #   dst_L = cv2.resize(color_image_L, dsize=(w, h))
+        #   dst_depth_R = cv2.resize(depth_image_R, dsize=(w, h))
+        #   dst_depth_L = cv2.resize(depth_image_L, dsize=(w, h))
+        #   depth_gry_R = cv2.resize(depth_colormap_R, dsize=(w, h))
+        #   depth_gry_L = cv2.resize(depth_colormap_L, dsize=(w, h))
 
         # ぼかし加工。
-     #   for i in range(2):
-     #       average_square_size = 10  # ぼかしパラメータ 大きくする程にぼけていくdef=15
-     #       sigma_color = 5000  # 色空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げるdef=5000
-     #       sigma_metric = 1  # 距離空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げる (d==0の時のみ有効)
-     #       img_bilateral_R = cv2.bilateralFilter(dst_R, average_square_size, sigma_color,
-     #                                             sigma_metric)  # Bilateralオペレータを使用して平滑化
-     #       img_bilateral_L = cv2.bilateralFilter(dst_L, average_square_size, sigma_color,
-     #                                             sigma_metric)  # Bilateralオペレータを使用して平滑化
-     #       hsv_img_R = cv2.cvtColor(img_bilateral_R, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
-     #       img_gly_R = cv2.cvtColor(dst_R, cv2.COLOR_BGR2GRAY)  # グレースケール
-     #       hsv_img_L = cv2.cvtColor(img_bilateral_L, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
-     #       img_gly_L = cv2.cvtColor(dst_L, cv2.COLOR_BGR2GRAY)  # グレースケール
+        #   for i in range(2):
+        #       average_square_size = 10  # ぼかしパラメータ 大きくする程にぼけていくdef=15
+        #       sigma_color = 5000  # 色空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げるdef=5000
+        #       sigma_metric = 1  # 距離空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げる (d==0の時のみ有効)
+        #       img_bilateral_R = cv2.bilateralFilter(dst_R, average_square_size, sigma_color,
+        #                                             sigma_metric)  # Bilateralオペレータを使用して平滑化
+        #       img_bilateral_L = cv2.bilateralFilter(dst_L, average_square_size, sigma_color,
+        #                                             sigma_metric)  # Bilateralオペレータを使用して平滑化
+        #       hsv_img_R = cv2.cvtColor(img_bilateral_R, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
+        #       img_gly_R = cv2.cvtColor(dst_R, cv2.COLOR_BGR2GRAY)  # グレースケール
+        #       hsv_img_L = cv2.cvtColor(img_bilateral_L, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
+        #       img_gly_L = cv2.cvtColor(dst_L, cv2.COLOR_BGR2GRAY)  # グレースケール
 
         # 設定以上の段差検知すると、その部分を白塗する
         white_color = 255  # RGBでの白色
@@ -172,63 +172,62 @@ try:
         yr2 = yl2 = 7  # 判定ポイント座標設定パラメータ
 
         # 右側判定
-        if 255 == bin_img_R[yr1, xl] and 255 == bin_img_R[yl1, xr]:  # 前判定ゾーンで監視
+        if 255 =! bin_img_R[yr1, xl] and 255 =! bin_img_R[yl1, xr]:  # 前判定ゾーンで監視
             dataR = 11  # 止まるモード
 
-        elif 255 == bin_img_R[yr1, xr] and 255 == bin_img_R[yr2, xr]:  # 引数1 y座標  引数2 x座標
+        elif 255 =! bin_img_R[yr1, xr] and 255 =!bin_img_R[yr2, xr]:  # 引数1 y座標  引数2 x座標
             dataR = 22  # 左モード
 
-        elif 255 == bin_img_R[yl1, xl] and 255 == bin_img_R[yl2, xl]:  # 左判定ゾーンで監視
+        elif 255 =! bin_img_R[yl1, xl] and 255 =! bin_img_R[yl2, xl]:  # 左判定ゾーンで監視
             dataR = 33  # "右モード
 
         else:
             dataR = 44  # 直進モード
 
         # 左側判定
-        if 255 == bin_img_L[yr1, xl] and 255 == bin_img_L[yl1, xr]:  # 前判定ゾーンで監視
+        if 255 =! bin_img_L[yr1, xl] and 255 =! bin_img_L[yl1, xr]:  # 前判定ゾーンで監視
             dataL = 11  # 止まるモード
 
-        elif 255 == bin_img_L[yr1, xr] and 255 == bin_img_L[yr2, xr]:  # 引数1 y座標  引数2 x座標
+        elif 255 =! bin_img_L[yr1, xr] and 255 =! bin_img_L[yr2, xr]:  # 引数1 y座標  引数2 x座標
             dataL = 22  # 左モード
 
-        elif 255 == bin_img_L[yl1, xl] and 255 == bin_img_L[yl2, xl]:  # 左判定ゾーンで監視
+        elif 255 =! bin_img_L[yl1, xl] and 255 =! bin_img_L[yl2, xl]:  # 左判定ゾーンで監視
             dataL = 33  # 右モード
 
         else:
             dataL = 44  # 直進
 
         # 総合判定
-        if dataL == 11 or dataR == 11:
-            print("停止")
-            data = '停止する'
+        if dataL == 11 and dataR == 11:
+            print("stop")
+            data = 'stop'
 
         elif dataL == 22 or dataR == 22:  # 引数1 y座標  引数2 x座標
-            print("左に行く")
-            data = '左に行く'
+            print("turn Left")
+            data = 'turn Left'
 
         elif dataL == 33 or dataR == 33:  # 左判定ゾーンで監視
-            print("右")
-            data = '右に行く'
+            print("turn Light")
+            data = 'turn Light'
 
         else:
-            print("直進")
-            data = '直進する'
+            print("keep")
+            data = 'keep'
 
-    #    # 保存部分
-    #    c += 1
-    #    write_file_name_R = f'RGBD_R{c:05d}.jpg'
-    #    write_file_name1_R = f'GIYD_R{c:05d}.jpg'
-    #    write_file_name_L = f'RGBD_L{c:05d}.jpg'
-    #    write_file_name1_L = f'GIYD_L{c:05d}.jpg'
-    #    cv2.imwrite('./AIdata002/' + write_file_name_R, dst_R)
-    #    cv2.imwrite('./AIdata002/' + write_file_name1_R, img_gly_R)
-    #    cv2.imwrite('./AIdata002/' + write_file_name_L, dst_L)
-    #    cv2.imwrite('./AIdata002/' + write_file_name1_L, img_gly_L)
+        #    # 保存部分
+        #    c += 1
+        #    write_file_name_R = f'RGBD_R{c:05d}.jpg'
+        #    write_file_name1_R = f'GIYD_R{c:05d}.jpg'
+        #    write_file_name_L = f'RGBD_L{c:05d}.jpg'
+        #    write_file_name1_L = f'GIYD_L{c:05d}.jpg'
+        #    cv2.imwrite('./AIdata002/' + write_file_name_R, dst_R)
+        #    cv2.imwrite('./AIdata002/' + write_file_name1_R, img_gly_R)
+        #    cv2.imwrite('./AIdata002/' + write_file_name_L, dst_L)
+        #    cv2.imwrite('./AIdata002/' + write_file_name1_L, img_gly_L)
 
-
-##################
-# 送信側プログラム(ローカル用)#
-##################
+        ##################
+        # 送信側プログラム(ローカル用)#
+        ##################
 
         # 送信側アドレスの設定
         SrcIP = "127.0.0.1"
@@ -252,7 +251,7 @@ try:
         # 受信側アドレスに送信
         udpClntSock.sendto(data, DstAddr)
 
-    # Stop streaming
+        # Stop streaming
         key = cv2.waitKey(5)
         # Press esc or 'q' to close the image window
         if key & 0xFF == ord('q') or key == 27:
