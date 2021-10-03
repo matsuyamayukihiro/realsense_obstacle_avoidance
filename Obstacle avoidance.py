@@ -43,7 +43,7 @@ print("Depth Scale is: ", depth_scale)
 
 # We will be removing the background of objects more than
 #  clipping_distance_in_meters meters away
-clipping_distance_in_meters = 5.5  # 排除する距離パラメータ[m]
+clipping_distance_in_meters = 4.5  # 排除する距離パラメータ[m]
 clipping_distance = clipping_distance_in_meters / depth_scale  # depth基準作り
 
 # Create an align object
@@ -143,7 +143,7 @@ try:
         #   depth_gry_L = cv2.resize(depth_colormap_L, dsize=(w, h))
 
         # ぼかし加工。
-        for i in range(2):
+        for i in range(1):
             average_square_size = 10  # ぼかしパラメータ 大きくする程にぼけていくdef=15
             sigma_color = 5000  # 色空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げるdef=5000
             sigma_metric = 1  # 距離空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げる (d==0の時のみ有効)
@@ -175,16 +175,16 @@ try:
 
         # Show images
         cv2.namedWindow('Right', cv2.WINDOW_AUTOSIZE)  # 条件式  #引数2 条件合致時の置き換え #引数3 条件不一致時の置き換え
-        cv2.imshow('Right', bin_img_R)  # 輪郭処理
+        cv2.imshow('Right', bg_removed_R)  # 輪郭処理
         cv2.namedWindow('Left', cv2.WINDOW_AUTOSIZE)  # 条件式  #引数2 条件合致時の置き換え #引数3 条件不一致時の置き換え
-        cv2.imshow('Left', bin_img_L)  # 輪郭処理
+        cv2.imshow('Left', bg_removed_L)  # 輪郭処理
 
-        xr = 440
-        xl = 200
-        yl1 = 10
-        yl2 = 30
+        xr = 600
+        xl = 40
+        yl1 = 100
+        yl2 = 200
         # 右側判定
-        if 0 == bin_img_R[yl1, xl].all() or 0 == bin_img_R[yl1, xr].all():  # 前判定ゾーンで監視
+        if 0 == bin_img_R[yl1, xl].all() and 0 == bin_img_R[yl1, xr].all():  # 前判定ゾーンで監視
             dataR = 11  # 止まるモード
 
         elif 0 == bin_img_R[yl1, xr].all() or 0 == bin_img_R[yl2, xr].all():  # 引数1 y座標  引数2 x座標
@@ -197,7 +197,7 @@ try:
             dataR = 44  # 直進モード
 
         # 左側判定
-        if 0 == bin_img_L[yl1, xl].all() or 0 == bin_img_L[yl1, xr].all():  # 前判定ゾーンで監視
+        if 0 == bin_img_L[yl1, xl].all() and 0 == bin_img_L[yl1, xr].all():  # 前判定ゾーンで監視
             dataL = 11  # 止まるモード
 
         elif 0 == bin_img_L[yl1, xr].all() or 0 == bin_img_L[yl2, xr].all():  # 引数1 y座標  引数2 x座標
@@ -210,9 +210,9 @@ try:
             dataL = 44  # 直進
 
         # 総合判定
-        if dataR == 11 and dataL == 11:
-            print("stop")
-            data = 'stop'
+        if dataR == 44 and dataL == 44:
+            print("keep")
+            data = 'keep'
 
         elif dataR == 22 and dataL == 22:  # 引数1 y座標  引数2 x座標
             print("turn Left")
@@ -222,10 +222,9 @@ try:
             print("turn Right")
             data = 'turn Right'
 
-        elif dataR == 44 and dataL == 44:
-            print("keep")
-            data = 'keep'
-
+        elif dataR == 11 and dataL == 11:
+            print("stop")
+            data = 'stop'
         ##################
         # 送信側プログラム(ローカル用)#
         ##################
@@ -253,7 +252,7 @@ try:
         #       udpClntSock.sendto(data, DstAddr)
 
         # Stop streaming
-        key = cv2.waitKey(1)
+        key = cv2.waitKey(5)
         # Press esc or 'q' to close the image window
         if key & 0xFF == ord('q') or key == 27:
             cv2.destroyAllWindows()
