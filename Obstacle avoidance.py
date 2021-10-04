@@ -132,25 +132,14 @@ try:
         depth_colormap_L = cv2.applyColorMap(cv2.convertScaleAbs(depth_image_L, alpha=0.5),
                                              cv2.COLORMAP_BONE)  # α=透明度 COLORMAP_BONE  疑似的なカラーマップ処理を施す
 
-        # 画質変更
-        #   h = 320
-        #   w = 480
-        #   dst_R = cv2.resize(color_image_R, dsize=(w, h))
-        #   dst_L = cv2.resize(color_image_L, dsize=(w, h))
-        #   dst_depth_R = cv2.resize(depth_image_R, dsize=(w, h))
-        #   dst_depth_L = cv2.resize(depth_image_L, dsize=(w, h))
-        #   depth_gry_R = cv2.resize(depth_colormap_R, dsize=(w, h))
-        #   depth_gry_L = cv2.resize(depth_colormap_L, dsize=(w, h))
-
         # ぼかし加工。
-        for i in range(1):
-            average_square_size = 10  # ぼかしパラメータ 大きくする程にぼけていくdef=15
-            sigma_color = 5000  # 色空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げるdef=5000
-            sigma_metric = 1  # 距離空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げる (d==0の時のみ有効)
-            img_bilateral_R = cv2.bilateralFilter(color_image_R, average_square_size, sigma_color,
-                                                  sigma_metric)  # Bilateralオペレータを使用して平滑化
-            img_bilateral_L = cv2.bilateralFilter(color_image_L, average_square_size, sigma_color,
-                                                  sigma_metric)  # Bilateralオペレータを使用して平滑化
+        average_square_size = 10  # ぼかしパラメータ 大きくする程にぼけていくdef=15
+        sigma_color = 5000  # 色空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げるdef=5000
+        sigma_metric = 1  # 距離空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げる (d==0の時のみ有効)
+        img_bilateral_R = cv2.bilateralFilter(color_image_R, average_square_size, sigma_color,
+                                              sigma_metric)  # Bilateralオペレータを使用して平滑化
+        img_bilateral_L = cv2.bilateralFilter(color_image_L, average_square_size, sigma_color,
+                                              sigma_metric)  # Bilateralオペレータを使用して平滑化
         hsv_img_R = cv2.cvtColor(img_bilateral_R, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
         img_gly_R = cv2.cvtColor(depth_colormap_R, cv2.COLOR_BGR2GRAY)  # グレースケール
         hsv_img_L = cv2.cvtColor(img_bilateral_L, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
@@ -159,7 +148,8 @@ try:
         # 設定以上の段差検知すると、その部分を白塗する
         white_color = 0  # RGBでの黒色
         depth_image_2d_R = np.dstack((depth_image_R, depth_image_R, depth_image_R))  # 配列同士を奥行きで重ねる。RGBに対してdepth情報追加
-        bg_removed_R = np.where((depth_image_2d_R > clipping_distance) | (depth_image_2d_R < 0), depth_colormap_R, color_image_R)  # 引数1
+        bg_removed = np.where((depth_image_2d_R > clipping_distance) | (depth_image_2d_R < 0), depth_colormap_R, color_image_R)  # 引数1
+        bg_removed_R = cv2.flip(bg_removed, -1)
         depth_image_2d_L = np.dstack((depth_image_L, depth_image_L, depth_image_L))  # 配列同士を奥行きで重ねる。RGBに対してdepth情報追加
         bg_removed_L = np.where((depth_image_2d_L > clipping_distance1) | (depth_image_2d_L < 0), depth_colormap_L, color_image_L)  # 引数1
 
@@ -173,6 +163,12 @@ try:
         contours_L, hierarchy_L = cv2.findContours(bin_img_L, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)  # 輪郭検出
         contours_L = list(filter(lambda x: cv2.contourArea(x) > 10000, contours_L))  # 小さい輪郭は誤検出として削除する
 
+        # 線を引く（線を引く画像、座標、線の色、線の太さをパラメータに指定）
+        #  height = 480
+        #  width = 640
+        #  img_R = cv2.line(bg_removed_R, (width, 0), (0, height), (255, 0, 0), 5)
+        #  img_L = cv2.line(bg_removed_L, (width, 0), (0, height), (255, 0, 0), 5)
+
         # Show images
         cv2.namedWindow('Right', cv2.WINDOW_AUTOSIZE)  # 条件式  #引数2 条件合致時の置き換え #引数3 条件不一致時の置き換え
         cv2.imshow('Right', bg_removed_R)  # 輪郭処理
@@ -184,26 +180,26 @@ try:
         yl1 = 100
         yl2 = 200
         # 右側判定
-        if 0 == bin_img_R[yl1, xl].all() and 0 == bin_img_R[yl1, xr].all():  # 前判定ゾーンで監視
+        if 0 == bin_img_R[370:380, 40:50].all() and 0 == bin_img_R[370:380, 590:600].all():  # 前判定ゾーンで監視
             dataR = 11  # 止まるモード
 
-        elif 0 == bin_img_R[yl1, xr].all() or 0 == bin_img_R[yl2, xr].all():  # 引数1 y座標  引数2 x座標
+        elif 0 == bin_img_R[340, 40:50].all() or 0 == bin_img_R[240, 40:50].all():  # 引数1 y座標  引数2 x座標
             dataR = 22  # 左モード
 
-        elif 0 == bin_img_R[yl1, xl].all() or 0 == bin_img_R[yl2, xl].all():  # 左判定ゾーンで監視
+        elif 0 == bin_img_R[340, 590:600].all() or 0 == bin_img_R[240, 590:600].all():  # 左判定ゾーンで監視
             dataR = 33  # "右モード
 
         else:
             dataR = 44  # 直進モード
 
         # 左側判定
-        if 0 == bin_img_L[yl1, xl].all() and 0 == bin_img_L[yl1, xr].all():  # 前判定ゾーンで監視
+        if 0 == bin_img_L[100:110, 40:50].all() and 0 == bin_img_L[100:110, 590:600].all():  # 前判定ゾーンで監視
             dataL = 11  # 止まるモード
 
-        elif 0 == bin_img_L[yl1, xr].all() or 0 == bin_img_L[yl2, xr].all():  # 引数1 y座標  引数2 x座標
+        elif 0 == bin_img_L[yl1, 590:600].all() or 0 == bin_img_L[yl2, 590:600].all():  # 引数1 y座標  引数2 x座標
             dataL = 22  # 左モード
 
-        elif 0 == bin_img_L[yl1, xl].all() or 0 == bin_img_L[yl2, xl].all():  # 左判定ゾーンで監視
+        elif 0 == bin_img_L[yl1, 40:50].all() or 0 == bin_img_L[yl2, 40:50].all():  # 左判定ゾーンで監視
             dataL = 33  # 右モード
 
         else:
@@ -215,12 +211,12 @@ try:
             data = 'keep'
 
         elif dataR == 22 and dataL == 22:  # 引数1 y座標  引数2 x座標
-            print("turn Left")
-            data = 'turn Left'
+            print("stop")
+            data = 'stop'
 
         elif dataR == 33 and dataL == 33:  # 左判定ゾーンで監視
-            print("turn Right")
-            data = 'turn Right'
+            print("stop")
+            data = 'stop'
 
         elif dataR == 11 and dataL == 11:
             print("stop")
