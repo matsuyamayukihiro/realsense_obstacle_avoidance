@@ -43,7 +43,7 @@ print("Depth Scale is: ", depth_scale)
 
 # We will be removing the background of objects more than
 #  clipping_distance_in_meters meters away
-clipping_distance_in_meters = 4.5  # 排除する距離パラメータ[m]
+clipping_distance_in_meters = 5.5  # 排除する距離パラメータ[m]
 clipping_distance = clipping_distance_in_meters / depth_scale  # depth基準作り
 
 # Create an align object
@@ -180,7 +180,7 @@ try:
         yl1 = 100
         yl2 = 200
         # 右側判定
-        if 0 == bin_img_R[370:380, 40:50].all() and 0 == bin_img_R[370:380, 590:600].all():  # 前判定ゾーンで監視
+        if 0 == bin_img_R[370, 40].all() and 0 == bin_img_R[370, 600].all():  # 前判定ゾーンで監視
             dataR = 11  # 止まるモード
 
         elif 0 == bin_img_R[340, 40:50].all() or 0 == bin_img_R[240, 40:50].all():  # 引数1 y座標  引数2 x座標
@@ -193,10 +193,10 @@ try:
             dataR = 44  # 直進モード
 
         # 左側判定
-        if 0 == bin_img_L[100:110, 40:50].all() and 0 == bin_img_L[100:110, 590:600].all():  # 前判定ゾーンで監視
+        if 0 == bin_img_L[100, 40:50].all() and 0 == bin_img_L[100, 590:600].all():  # 前判定ゾーンで監視
             dataL = 11  # 止まるモード
 
-        elif 0 == bin_img_L[yl1, 590:600].all() or 0 == bin_img_L[yl2, 590:600].all():  # 引数1 y座標  引数2 x座標
+        elif 0 == bin_img_L[yl1, 597:600].all() or 0 == bin_img_L[yl2, 597:600].all():  # 引数1 y座標  引数2 x座標
             dataL = 22  # 左モード
 
         elif 0 == bin_img_L[yl1, 40:50].all() or 0 == bin_img_L[yl2, 40:50].all():  # 左判定ゾーンで監視
@@ -206,19 +206,19 @@ try:
             dataL = 44  # 直進
 
         # 総合判定
-        if dataR == 44 and dataL == 44:
+        if dataR == 44 or dataL == 44:
             print("keep")
             data = 'keep'
 
-        elif dataR == 22 and dataL == 22:  # 引数1 y座標  引数2 x座標
+        elif dataR == 22 or dataL == 22:  # 引数1 y座標  引数2 x座標
             print("stop")
             data = 'stop'
 
-        elif dataR == 33 and dataL == 33:  # 左判定ゾーンで監視
+        elif dataR == 33 or dataL == 33:  # 左判定ゾーンで監視
             print("stop")
             data = 'stop'
 
-        elif dataR == 11 and dataL == 11:
+        elif dataR == 11 or dataL == 11:
             print("stop")
             data = 'stop'
         ##################
