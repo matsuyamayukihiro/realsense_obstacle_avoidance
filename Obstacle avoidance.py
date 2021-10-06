@@ -1,6 +1,6 @@
 # First import the library
 import socket
-import pyrealsense2 as rs
+import pyrealsense2.pyrealsense2 as rs
 import numpy as np
 import cv2
 
