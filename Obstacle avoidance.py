@@ -4,7 +4,7 @@ import pyrealsense2.pyrealsense2 as rs
 import numpy as np
 import cv2
 
-# 右カメラ設定
+# Create a pipeline
 pipeline = rs.pipeline()
 # Create a config and configure the pipeline to stream
 #  different resolutions of color and depth streams
@@ -25,14 +25,14 @@ if not found_rgb:
     print("The demo requires Depth camera with Color sensor")
     exit(0)
 
-config.enable_stream(rs.stream.depth, 160, 120, rs.format.z16, 30)
+config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
 
 if device_product_line == 'L500':
-    config.enable_stream(rs.stream.color, 240, 135, rs.format.bgr8, 30)
+    config.enable_stream(rs.stream.color, 960, 540, rs.format.bgr8, 30)
 else:
-    config.enable_stream(rs.stream.color, 160, 120, rs.format.bgr8, 30)
+    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
-config.enable_device('912112073474')
+config.enable_device('838212070171')
 # Start streaming
 profile = pipeline.start(config)
 
@@ -53,7 +53,7 @@ align_to = rs.stream.color
 align = rs.align(align_to)
 c = 0
 
-# 左カメラ設定
+# Create a pipeline
 pipeline1 = rs.pipeline()
 # Create a config and configure the pipeline to stream
 #  different resolutions of color and depth streams
@@ -74,14 +74,14 @@ if not found_rgb1:
     print("The demo requires Depth camera with Color sensor")
     exit(0)
 
-config1.enable_stream(rs.stream.depth, 160, 120, rs.format.z16, 30)
+config1.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
 
 if device_product_line1 == 'L500':
-    config1.enable_stream(rs.stream.color, 240, 135, rs.format.bgr8, 30)
+    config1.enable_stream(rs.stream.color, 960, 540, rs.format.bgr8, 30)
 else:
-    config1.enable_stream(rs.stream.color, 160, 120, rs.format.bgr8, 30)
+    config1.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
-config1.enable_device('838212070171')
+config1.enable_device('912112073474')
 # Start streaming
 profile1 = pipeline1.start(config1)
 
@@ -132,10 +132,17 @@ try:
         depth_colormap_L = cv2.applyColorMap(cv2.convertScaleAbs(depth_image_L, alpha=0.5),
                                              cv2.COLORMAP_BONE)  # α=透明度 COLORMAP_BONE  疑似的なカラーマップ処理を施す
 
-        # HSV処理
-        hsv_img_R = cv2.cvtColor(color_image_R, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
+        # ぼかし加工。
+        average_square_size = 3  # ぼかしパラメータ 大きくする程にぼけていくdef=15
+        sigma_color = 5000  # 色空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げるdef=5000
+        sigma_metric = 1  # 距離空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げる (d==0の時のみ有効)
+        img_bilateral_R = cv2.bilateralFilter(color_image_R, average_square_size, sigma_color,
+                                              sigma_metric)  # Bilateralオペレータを使用して平滑化
+        img_bilateral_L = cv2.bilateralFilter(color_image_L, average_square_size, sigma_color,
+                                              sigma_metric)  # Bilateralオペレータを使用して平滑化
+        hsv_img_R = cv2.cvtColor(img_bilateral_R, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
         img_gly_R = cv2.cvtColor(depth_colormap_R, cv2.COLOR_BGR2GRAY)  # グレースケール
-        hsv_img_L = cv2.cvtColor(color_image_L, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
+        hsv_img_L = cv2.cvtColor(img_bilateral_L, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
         img_gly_L = cv2.cvtColor(depth_colormap_L, cv2.COLOR_BGR2GRAY)  # グレースケール
 
         # 設定以上の段差検知すると、その部分を白塗する
@@ -157,21 +164,21 @@ try:
         contours_L = list(filter(lambda x: cv2.contourArea(x) > 10000, contours_L))  # 小さい輪郭は誤検出として削除する
 
         # 線を引く（線を引く画像、座標、線の色、線の太さをパラメータに指定）
-        xr1 = 142  # 設定パラメータ
-        xr2 = xr1 - 7
-        xr3 = xr1 - 22
-        xr4 = xr3 - 7
-        xl1 = 10  # 設定パラメータ
-        xl2 = xl1 + 7
-        xl3 = xl1 + 22
-        xl4 = xl3 + 7
-        y1 = 60  # 設定パラメータ
+        xr1 = 568  # 設定パラメータ
+        xr2 = xr1 - 10
+        xr3 = xr1 - 88
+        xr4 = xr3 - 10
+        xl1 = 40  # 設定パラメータ
+        xl2 = xl1 + 10
+        xl3 = xl1 + 88
+        xl4 = xl3 + 10
+        y1 = 240  # 設定パラメータ
 
-        x3 = 25  # 設定パラメータ
-        x4 = x3 + 7
-        x5 = x3 + 102
-        x6 = x5 + 7
-        y3 = 55  # 設定パラメータ
+        x3 = 100  # 設定パラメータ
+        x4 = x3 + 10
+        x5 = x3 + 408
+        x6 = x5 + 10
+        y3 = 220  # 設定パラメータ
 
         img_R = cv2.line(bg_removed_R, (xr1, y1), (xr2, y1), (255, 0, 0), 3)  # 座標(x,y) turn Left判定1
         img_R = cv2.line(bg_removed_R, (xr3, y1), (xr4, y1), (255, 0, 0), 3)  # 座標(x,y) turn Left判定2
@@ -219,39 +226,44 @@ try:
             print("R")
             data = 'stop'
 
-        elif dataR == 11 and dataL == 11:
+        elif dataR == 11 or dataL == 11:
             print("stop")
             data = 'stop'
+
+        else:
+            print("keep")
+            data = "keep"
 
             ##################
             # 送信側プログラム(ローカル用)#
             ##################
 
             # 送信側アドレスの設定
-            SrcIP = "192.168.128.142"
-            #      送信側IP
-            SrcPort = 11111  # 送信側ポート番号
-            SrcAddr = (SrcIP, SrcPort)  # 送信側アドレスをtupleに格納
+        SrcIP = "192.168.128.142"
+        #      送信側IP
+        SrcPort = 11111  # 送信側ポート番号
+        SrcAddr = (SrcIP, SrcPort)  # 送信側アドレスをtupleに格納
 
-            # 受信側アドレスの設定
-            DstIP = "192.168.128.176"  # connect jetson
-            # 受信側IP
-            DstPort = 22222  # 受信側ポート番号
-            DstAddr = (DstIP, DstPort)  # 受信側アドレスをtupleに格納
-            # ソケット作成
-            udpClntSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 引数1 IPv4用 or IPv6用か   引数2 TCP用 or UDP用か
-            udpClntSock.bind(SrcAddr)  # 送信側アドレスでソケットを設定
-            # バイナリに変換
-            data = data.encode('utf-8')
-            # 受信側アドレスに送信
-            udpClntSock.sendto(data, DstAddr)
+        # 受信側アドレスの設定
+        DstIP = "192.168.128.134"  # connect jetson
+        # 受信側IP
+        DstPort = 22222  # 受信側ポート番号
+        DstAddr = (DstIP, DstPort)  # 受信側アドレスをtupleに格納
+        # ソケット作成
+        udpClntSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 引数1 IPv4用 or IPv6用か   引数2 TCP用 or UDP用か
+        udpClntSock.bind(SrcAddr)  # 送信側アドレスでソケットを設定
+        # バイナリに変換
+        data = data.encode('utf-8')
+        # 受信側アドレスに送信
+        udpClntSock.sendto(data, DstAddr)
 
-    # Stop streaming
-            key = cv2.waitKey(5)
-    # Press esc or 'q' to close the image window
+        # Stop streaming
+        key = cv2.waitKey(5)
+        # Press esc or 'q' to close the image window
         if key & 0xFF == ord('q') or key == 27:
             cv2.destroyAllWindows()
             break
 
- finally:
-     pipeline1.stop()
+finally:
+
+    pipeline1.stop()
