@@ -32,7 +32,7 @@ if device_product_line == 'L500':
 else:
     config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
-config.enable_device('838212070171')
+config.enable_device('836612070195')
 # Start streaming
 profile = pipeline.start(config)
 
@@ -81,7 +81,7 @@ if device_product_line1 == 'L500':
 else:
     config1.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
-config1.enable_device('912112073474')
+config1.enable_device('135222070395')
 # Start streaming
 profile1 = pipeline1.start(config1)
 
@@ -101,6 +101,41 @@ align_to1 = rs.stream.color
 align1 = rs.align(align_to1)
 c1 = 0
 
+# 初期セットアップ
+# 障害物判定範囲パラメータ
+xr1 = 568  # 設定パラメータ
+xr2 = xr1 - 10
+xr3 = xr1 - 88
+xr4 = xr3 - 10
+xl1 = 40  # 設定パラメータ
+xl2 = xl1 + 10
+xl3 = xl1 + 88
+xl4 = xl3 + 10
+y1 = 240  # 設定パラメータ
+
+x3 = 100  # 設定パラメータ
+x4 = x3 + 10
+x5 = x3 + 408
+x6 = x5 + 10
+y3 = 220  # 設定パラメータ
+
+# ぼかしパラメータ
+average_square_size = 3  # ぼかしパラメータ 大きくする程にぼけていくdef=15
+sigma_color = 5000  # 色空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げるdef=5000
+sigma_metric = 1  # 距離空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げる (d==0の時のみ有効)
+# 物体検出の際の色塗り
+white_color = 0  # RGBでの黒色
+
+# UDPセットアップ
+# 送信側アドレスの設定
+# SrcIP = "192.168.128.142"  # 送信側IP
+# SrcPort = 11111  # 送信側ポート番号
+# SrcAddr = (SrcIP, SrcPort)  # 送信側アドレスをtupleに格納
+# DstIP = "192.168.128.134"  # 受信側IP
+# DstPort = 22222  # 受信側ポート番号
+# DstAddr = (DstIP, DstPort)  # 受信側アドレスをtupleに格納
+# udpClntSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # ソケット作成 引数1 IPv4用 or IPv6用か   引数2 TCP用 or UDP用か
+# udpClntSock.bind(SrcAddr)  # 送信側アドレスでソケットを設定
 # Streaming loop
 try:
     while True:
@@ -132,21 +167,18 @@ try:
         depth_colormap_L = cv2.applyColorMap(cv2.convertScaleAbs(depth_image_L, alpha=0.5),
                                              cv2.COLORMAP_BONE)  # α=透明度 COLORMAP_BONE  疑似的なカラーマップ処理を施す
 
-        # ぼかし加工。
-        average_square_size = 3  # ぼかしパラメータ 大きくする程にぼけていくdef=15
-        sigma_color = 5000  # 色空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げるdef=5000
-        sigma_metric = 1  # 距離空間に関する標準偏差パラメータ  大きくすると色の平滑化範囲を広げる (d==0の時のみ有効)
+        # ぼかし加工
         img_bilateral_R = cv2.bilateralFilter(color_image_R, average_square_size, sigma_color,
                                               sigma_metric)  # Bilateralオペレータを使用して平滑化
         img_bilateral_L = cv2.bilateralFilter(color_image_L, average_square_size, sigma_color,
                                               sigma_metric)  # Bilateralオペレータを使用して平滑化
-        hsv_img_R = cv2.cvtColor(img_bilateral_R, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
+        # HSVへ変更
+        hsv_img_R = cv2.cvtColor(color_image_R, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
         img_gly_R = cv2.cvtColor(depth_colormap_R, cv2.COLOR_BGR2GRAY)  # グレースケール
-        hsv_img_L = cv2.cvtColor(img_bilateral_L, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
+        hsv_img_L = cv2.cvtColor(color_image_L, cv2.COLOR_BGR2HSV)  # HSVモデルに変更
         img_gly_L = cv2.cvtColor(depth_colormap_L, cv2.COLOR_BGR2GRAY)  # グレースケール
 
         # 設定以上の段差検知すると、その部分を白塗する
-        white_color = 0  # RGBでの黒色
         depth_image_2d_R = np.dstack((depth_image_R, depth_image_R, depth_image_R))  # 配列同士を奥行きで重ねる。RGBに対してdepth情報追加
         bg_removed = np.where((depth_image_2d_R > clipping_distance) | (depth_image_2d_R < 0), depth_colormap_R, color_image_R)  # 引数1
         bg_removed_R = cv2.flip(bg_removed, -1)
@@ -163,30 +195,13 @@ try:
         contours_L, hierarchy_L = cv2.findContours(bin_img_L, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)  # 輪郭検出
         contours_L = list(filter(lambda x: cv2.contourArea(x) > 10000, contours_L))  # 小さい輪郭は誤検出として削除する
 
-        # 線を引く（線を引く画像、座標、線の色、線の太さをパラメータに指定）
-        xr1 = 568  # 設定パラメータ
-        xr2 = xr1 - 10
-        xr3 = xr1 - 88
-        xr4 = xr3 - 10
-        xl1 = 40  # 設定パラメータ
-        xl2 = xl1 + 10
-        xl3 = xl1 + 88
-        xl4 = xl3 + 10
-        y1 = 240  # 設定パラメータ
-
-        x3 = 100  # 設定パラメータ
-        x4 = x3 + 10
-        x5 = x3 + 408
-        x6 = x5 + 10
-        y3 = 220  # 設定パラメータ
-
+        # 判定確認画面表示
         img_R = cv2.line(bg_removed_R, (xr1, y1), (xr2, y1), (255, 0, 0), 3)  # 座標(x,y) turn Left判定1
         img_R = cv2.line(bg_removed_R, (xr3, y1), (xr4, y1), (255, 0, 0), 3)  # 座標(x,y) turn Left判定2
         img_L = cv2.line(bg_removed_L, (xl1, y1), (xl2, y1), (255, 0, 0), 3)  # 座標(x,y) turn Right判定1
         img_L = cv2.line(bg_removed_L, (xl3, y1), (xl4, y1), (255, 0, 0), 3)  # 座標(x,y) turn Right判定2
         img_R = cv2.line(bg_removed_R, (x3, y3), (x4, y3), (0, 0, 255), 3)  # 正面判定
         img_L = cv2.line(bg_removed_L, (x5, y3), (x6, y3), (0, 0, 255), 3)  # 正面判定
-
         # Show images
         cv2.namedWindow('Right', cv2.WINDOW_AUTOSIZE)  # 条件式  #引数2 条件合致時の置き換え #引数3 条件不一致時の置き換え
         cv2.imshow('Right', img_R)  # 輪郭処理
@@ -194,20 +209,23 @@ try:
         cv2.imshow('Left', img_L)  # 輪郭処理
 
         # 右側判定
-        if 0 == bin_img_R[x3:x4, y3].all():
+        if 0 == bin_img_R[x3:x4, y3].all() or 0 == bin_img_R[(x3 + 32):(x4 + 32), y3].all():
             dataR = 11  # 止まるモード
 
-        elif 0 == bin_img_R[xr1:xr2, y1].all() or 0 == bin_img_R[xr3:xr4, y1].all():
+        elif 0 == bin_img_R[xr1:xr2, y1].all() or 0 == bin_img_R[xr3:xr4, y1].all() or 0 == bin_img_R[xr1:xr2, (y1 - 20)].all() or 0 == bin_img_R[
+                                                                                                                                       xr3:xr4,
+                                                                                                                                       220].all():
             dataR = 22  # 左モード
 
         else:
             dataR = 44  # 直進モード
 
         # 左側判定
-        if 0 == bin_img_L[x5:x6, y3].all():
+        if 0 == bin_img_L[x5:x6, y3].all() or 0 == bin_img_R[(x5 - 32):(x6 - 32), y3].all():
             dataL = 11  # 止まるモード
 
-        elif 0 == bin_img_L[xl1:xl2, y1].all or 0 == bin_img_L[xl3:xl4, y1].all:  # 左判定ゾーンで監視
+        elif 0 == bin_img_L[xl1:xl2, y1].all or 0 == bin_img_L[xl3:xl4, y1].all or 0 == bin_img_L[xl1:xl2, 220].all or 0 == bin_img_L[xl3:xl4,
+                                                                                                                           220].all:  # 左判定ゾーンで監視
             dataL = 33  # 右モード
 
         else:
@@ -226,7 +244,7 @@ try:
             print("R")
             data = 'stop'
 
-        elif dataR == 11 or dataL == 11:
+        elif dataR == 11 and dataL == 11:
             print("stop")
             data = 'stop'
 
@@ -234,36 +252,16 @@ try:
             print("keep")
             data = "keep"
 
-            ##################
-            # 送信側プログラム(ローカル用)#
-            ##################
-
-            # 送信側アドレスの設定
-        SrcIP = "192.168.128.142"
-        #      送信側IP
-        SrcPort = 11111  # 送信側ポート番号
-        SrcAddr = (SrcIP, SrcPort)  # 送信側アドレスをtupleに格納
-
-        # 受信側アドレスの設定
-        DstIP = "192.168.128.134"  # connect jetson
-        # 受信側IP
-        DstPort = 22222  # 受信側ポート番号
-        DstAddr = (DstIP, DstPort)  # 受信側アドレスをtupleに格納
-        # ソケット作成
-        udpClntSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 引数1 IPv4用 or IPv6用か   引数2 TCP用 or UDP用か
-        udpClntSock.bind(SrcAddr)  # 送信側アドレスでソケットを設定
-        # バイナリに変換
-        data = data.encode('utf-8')
-        # 受信側アドレスに送信
-        udpClntSock.sendto(data, DstAddr)
-
+        ##################
+        # 送信側プログラム(ローカル用)#
+        ##################
+        #        data = data.encode('utf-8')  # バイナリに変換
+        #        udpClntSock.sendto(data, DstAddr)  # 受信側アドレスに送信
         # Stop streaming
         key = cv2.waitKey(5)
         # Press esc or 'q' to close the image window
         if key & 0xFF == ord('q') or key == 27:
             cv2.destroyAllWindows()
             break
-
 finally:
-
     pipeline1.stop()
