@@ -43,7 +43,7 @@ print("Depth Scale is: ", depth_scale)
 
 # We will be removing the background of objects more than
 #  clipping_distance_in_meters meters away
-clipping_distance_in_meters = 4.5  # 排除する距離パラメータ[m]
+clipping_distance_in_meters = 30  # 排除する距離パラメータ 推奨値 4.5[m]
 clipping_distance = clipping_distance_in_meters / depth_scale  # depth基準作り
 
 # Create an align object
@@ -162,9 +162,9 @@ try:
         depth_image_L = np.asanyarray(aligned_depth_frame_L.get_data())  # 深度カラーマップの配列1ch
         color_image_R = np.asanyarray(color_frame_R.get_data())  # RGB表示3ch
         color_image_L = np.asanyarray(color_frame_L.get_data())  # RGB表示3ch
-        depth_colormap_R = cv2.applyColorMap(cv2.convertScaleAbs(depth_image_R, alpha=0.5),
+        depth_colormap_R = cv2.applyColorMap(cv2.convertScaleAbs(depth_image_R, alpha=0.7),
                                              cv2.COLORMAP_BONE)  # α=透明度 COLORMAP_BONE  疑似的なカラーマップ処理を施す
-        depth_colormap_L = cv2.applyColorMap(cv2.convertScaleAbs(depth_image_L, alpha=0.5),
+        depth_colormap_L = cv2.applyColorMap(cv2.convertScaleAbs(depth_image_L, alpha=0.7),
                                              cv2.COLORMAP_BONE)  # α=透明度 COLORMAP_BONE  疑似的なカラーマップ処理を施す
 
         # ぼかし加工
@@ -196,37 +196,41 @@ try:
         contours_L = list(filter(lambda x: cv2.contourArea(x) > 10000, contours_L))  # 小さい輪郭は誤検出として削除する
 
         # 判定確認画面表示
-        img_R = cv2.line(bg_removed_R, (xr1, y1), (xr2, y1), (255, 0, 0), 3)  # 座標(x,y) turn Left判定1
-        img_R = cv2.line(bg_removed_R, (xr3, y1), (xr4, y1), (255, 0, 0), 3)  # 座標(x,y) turn Left判定2
-        img_L = cv2.line(bg_removed_L, (xl1, y1), (xl2, y1), (255, 0, 0), 3)  # 座標(x,y) turn Right判定1
-        img_L = cv2.line(bg_removed_L, (xl3, y1), (xl4, y1), (255, 0, 0), 3)  # 座標(x,y) turn Right判定2
-        img_R = cv2.line(bg_removed_R, (x3, y3), (x4, y3), (0, 0, 255), 3)  # 正面判定
-        img_L = cv2.line(bg_removed_L, (x5, y3), (x6, y3), (0, 0, 255), 3)  # 正面判定
+       # img_R = cv2.line(bg_removed_R, (xr1, y1), (xr2, y1), (255, 0, 0), 3)  # 座標(x,y) turn Left判定1
+       # img_R = cv2.line(bg_removed_R, (xr3, y1), (xr4, y1), (255, 0, 0), 3)  # 座標(x,y) turn Left判定2
+       # img_L = cv2.line(bg_removed_L, (xl1, y1), (xl2, y1), (255, 0, 0), 3)  # 座標(x,y) turn Right判定1
+       # img_L = cv2.line(bg_removed_L, (xl3, y1), (xl4, y1), (255, 0, 0), 3)  # 座標(x,y) turn Right判定2
+       # img_R = cv2.line(bg_removed_R, (x3, y3), (x4, y3), (0, 0, 255), 3)  # 正面判定
+       # img_L = cv2.line(bg_removed_L, (x5, y3), (x6, y3), (0, 0, 255), 3)  # 正面判定
         # Show images
         cv2.namedWindow('Right', cv2.WINDOW_AUTOSIZE)  # 条件式  #引数2 条件合致時の置き換え #引数3 条件不一致時の置き換え
-        cv2.imshow('Right', img_R)  # 輪郭処理
+        cv2.imshow('Right', bg_removed_R)  # 輪郭処理
         cv2.namedWindow('Left', cv2.WINDOW_AUTOSIZE)  # 条件式  #引数2 条件合致時の置き換え #引数3 条件不一致時の置き換え
-        cv2.imshow('Left', img_L)  # 輪郭処理
+        cv2.imshow('Left', bg_removed_L)  # 輪郭処理
+
+        # 画像保存
+        c += 1
+        write_file_name = f'comb{c:05d}R.png'
+        cv2.imwrite('./AIdata/' + write_file_name, bg_removed_R)
+        write_file_name = f'comb{c:05d}L.png'
+        cv2.imwrite('./AIdata/' + write_file_name, bg_removed_L)
 
         # 右側判定
-        if 0 == bin_img_R[x3:x4, y3].all() or 0 == bin_img_R[(x3 + 32):(x4 + 32), y3].all():
-            dataR = 11  # 止まるモード
-
-        elif 0 == bin_img_R[xr1:xr2, y1].all() or 0 == bin_img_R[xr3:xr4, y1].all() or 0 == bin_img_R[xr1:xr2, (y1 - 20)].all() or 0 == bin_img_R[
-                                                                                                                                       xr3:xr4,
-                                                                                                                                       220].all():
+        if 0 == bin_img_R[xr1:xr2, y1].all() or 0 == bin_img_R[xr3:xr4, y1].all() or 0 == bin_img_R[xr3:xr4, 220].all():
             dataR = 22  # 左モード
+
+        elif 0 == bin_img_R[x3:x4, y3].all() or 0 == bin_img_R[(x3 + 32):(x4 + 32), y3].all():
+            dataR = 11  # 止まるモード
 
         else:
             dataR = 44  # 直進モード
 
         # 左側判定
-        if 0 == bin_img_L[x5:x6, y3].all() or 0 == bin_img_R[(x5 - 32):(x6 - 32), y3].all():
-            dataL = 11  # 止まるモード
-
-        elif 0 == bin_img_L[xl1:xl2, y1].all or 0 == bin_img_L[xl3:xl4, y1].all or 0 == bin_img_L[xl1:xl2, 220].all or 0 == bin_img_L[xl3:xl4,
-                                                                                                                           220].all:  # 左判定ゾーンで監視
+        if 0 == bin_img_L[xl1:xl2, y1].all or 0 == bin_img_L[xl3:xl4, y1].all or 0 == bin_img_L[xl3:xl4, 220].all:
             dataL = 33  # 右モード
+
+        elif 0 == bin_img_L[x5:x6, y3].all() or 0 == bin_img_R[(x5 - 32):(x6 - 32), y3].all():
+            dataL = 11  # 止まるモード
 
         else:
             dataL = 44  # 直進
@@ -237,11 +241,11 @@ try:
             data = 'keep'
 
         elif dataR == 22:  # turn Left
-            print("L")
+            print("Left")
             data = 'stop'
 
         elif dataL == 33:  # turn Right
-            print("R")
+            print("Right")
             data = 'stop'
 
         elif dataR == 11 and dataL == 11:
