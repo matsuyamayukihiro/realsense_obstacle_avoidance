@@ -21,7 +21,7 @@ if device_product_line == 'L500':
 else:
     config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
-config.enable_device('135222070395')  # 838212070171
+config.enable_device('838212070171')  # テスト用 838212070171　　車体用 135222070395
 pipeline.start(config)
 
 # Alignオブジェクト生成
@@ -34,14 +34,49 @@ deceleration_ratio = 1.0  # 障害物接近時のブレーキのかかり具合�
 detection_box = 1  # 検出範囲の調整（最大値は「40」までで設定してね）　値大→ 物体検出する範囲が広くなる
 
 # 障害物検出範囲の指定及び確認用に表示
-detection_left_point = 41 - detection_box  # 検出範囲左
-detection_light_point = 399 + detection_box  # 検出範囲右
-detection_upper_point = 41 - detection_box  # 検出範囲右
-detection_under_point = 398 + detection_box  # 検出範囲右
+detection_left_point = 41 - detection_box  # 検出範囲左端
+detection_light_point = 399 + detection_box  # 検出範囲右端
+detection_upper_point = 41 - detection_box  # 検出範囲上端
+detection_under_point = 398 + detection_box  # 検出範囲下端
 
+
+# 送信側アドレスの設定
+# SrcIP = "127.0.0.1"
+# 送信側IP
+# SrcPort = 11111  # 送信側ポート番号
+# SrcAddr = (SrcIP, SrcPort)  # 送信側アドレスをtupleに格納
+# 受信側アドレスの設定
+# DstIP = "127.0.0.1"
+# 受信側IP
+# DstPort = 22222  # 受信側ポート番号
+# DstAddr = (DstIP, DstPort)  # 受信側アドレスをtupleに格納
+
+def distance_calculation(detframe, detframe_road):  # 白から黒の計算
+    im_gray_calc = 0.299 * detframe[:, :, 2] + 0.587 * detframe[:, :, 1] + 0.114 * detframe[:, :, 0]  # 白から黒の値算出
+    im_gray_calc = sum(im_gray_calc) / 359.0  # 縦列要素の統合
+    im_gray_calc = sum(im_gray_calc) / 360.0  # 横列の統合
+    im_gray_calc_road = 0.299 * detframe_road[:, :, 2] + 0.587 * detframe_road[:, :, 1] + 0.114 * detframe_road[:, :, 0]  # 白から黒の値算出
+    im_gray_calc_road = sum(im_gray_calc_road) / 80.0  # 縦列要素の統合
+    im_gray_calc_road = sum(im_gray_calc_road) / 640.0  # 横列の統合
+    return im_gray_calc, im_gray_calc_road
+
+
+def risk_judgment(im_gray_calc, im_gray_calc_road):  # 距離に応じて3つのモードに分ける　距離情報を正規化
+    if (im_gray_calc >= 0) and (im_gray_calc <= 120) or (im_gray_calc_road <= 100) or (im_gray_calc_road >= 160):  # 右のコードは路面段差検知の条件式 :  # 停止モード
+        power_control = 0.0  # 距離情報を正規化
+
+    elif (im_gray_calc > 120) and (im_gray_calc <= 220):  # 減速モード
+        power_control = im_gray_calc / (256.0 * deceleration_ratio)  # 減速率  deceleration ratio
+
+    else:  # 通常走行モード
+        power_control = 1.0  # 距離情報を正規化   減速率  deceleration ratio
+
+    return power_control
+
+
+# メインループ
 try:
     while True:
-
         # フレーム待ち(Color & Depth)
         frames_R = pipeline.wait_for_frames()
         # aligned_frames_L = align1.process(frames_L)
@@ -59,16 +94,9 @@ try:
         color_image_R = cv2.flip(color_image, -1)
         depth_image_R = cv2.flip(depth_image, -1)
 
-        # print('x差分')
-        # print(detection_light_point - detection_left_point)
-        # print('\ny差分')
-        # print(detection_under_point - detection_upper_point)
-
         img_R = cv2.rectangle(color_image_R, (detection_left_point, detection_upper_point), (detection_light_point, detection_under_point),
                               (0, 255, 0), 3)
-
-        img_R = cv2.rectangle(color_image_R, (0, 400), (640, 480),
-                              (255, 0, 0), 3)
+        img_R = cv2.rectangle(img_R, (0, 400), (640, 480), (255, 0, 0), 3)
 
         # 距離に基づくヒートマップ画像グレースケール化して表現
         depth_colormap_gly = cv2.applyColorMap(cv2.convertScaleAbs(depth_image_R, alpha=0.08), cv2.COLORMAP_BONE)
@@ -81,28 +109,21 @@ try:
         detframe = depth_colormap_gly[detection_upper_point:detection_under_point, detection_left_point:detection_light_point]  # 障害物検知用
         detframe_road = depth_colormap_gly[400:480, 0:640]  # 段差検知用
 
-        # 白から黒の計算
-        im_gray_calc = 0.299 * detframe[:, :, 2] + 0.587 * detframe[:, :, 1] + 0.114 * detframe[:, :, 0]  # 白から黒の値算出
-        im_gray_calc = sum(im_gray_calc) / 359.0  # 縦列要素の統合
-        im_gray_calc = sum(im_gray_calc) / 360.0  # 横列の統合
+        # 各ピクセルの距離情報統合、距離に基づく出力パワーの計算
+        gray_calc, gray_calc_road = distance_calculation(detframe, detframe_road)  # 距離情報の統合
+        power = risk_judgment(gray_calc, gray_calc_road)                           # 距離に基づく出力パワーの計算
+        print(power)  # 出力パワーのチェック
 
-        im_gray_calc_road = 0.299 * detframe_road[:, :, 2] + 0.587 * detframe_road[:, :, 1] + 0.114 * detframe_road[:, :, 0]  # 白から黒の値算出
-        im_gray_calc_road = sum(im_gray_calc_road) / 80.0  # 縦列要素の統合
-        im_gray_calc_road = sum(im_gray_calc_road) / 640.0  # 横列の統合
-        #print(im_gray_calc_road)  # 距離計測値の表示
+        # def data_sending(power_control,SrcAddr, DstAddr):# 送信側プログラム(ローカル用)
+        # ソケット作成
+        # udpClntSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 引数1 IPv4用 or IPv6用か   引数2 TCP用 or UDP用か
+        # udpClntSock.bind(SrcAddr)  # 送信側アドレスでソケットを設定
 
-        # 距離に応じて3つのモードに分ける　距離情報を正規化
-        if (im_gray_calc >= 0) and (im_gray_calc <= 120) or (im_gray_calc_road <= 100) or (im_gray_calc_road >= 160):  # 右のコードは路面段差検知の条件式 :  # 停止モード
-            power_control = 0.0  # 距離情報を正規化
-            print(power_control)
+        # バイナリに変換
+        # data = power_control.encode('utf-8')
 
-        elif (im_gray_calc > 120) and (im_gray_calc <= 220):  # 減速モード
-            power_control = im_gray_calc / (256.0 * deceleration_ratio)  # 減速率  deceleration ratio
-            print(power_control)
-
-        else:  # 通常走行モード
-            power_control = 1.0  # 距離情報を正規化   減速率  deceleration ratio
-            print(power_control)
+        # 受信側アドレスに送信
+        # udpClntSock.sendto(data, DstAddr)
 
         cv2.waitKey(10)
         # time.sleep(0.5)
