@@ -4,7 +4,7 @@ import cv2
 import socket
 import time
 
-# カメラセットアップ&公正
+# カメラセットアップ&公正 18.8fps
 pipeline = rs.pipeline()  # 配列
 config = rs.config()
 
@@ -21,7 +21,7 @@ if device_product_line == 'L500':
 else:
     config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
-config.enable_device('838212070171')  # テスト用 838212070171　　車体用 135222070395
+config.enable_device('135222070395')  # テスト用 838212070171　　車体用 135222070395
 pipeline.start(config)
 
 # Alignオブジェクト生成
@@ -30,7 +30,6 @@ align = rs.align(align_to)
 print('ready')
 
 # 変更パラメータ
-deceleration_ratio = 1.0  # 障害物接近時のブレーキのかかり具合を調整　値（大）→ 減速度合い大　値（小）→ 減速度合い小
 detection_box = 1  # 検出範囲の調整（最大値は「40」までで設定してね）　値大→ 物体検出する範囲が広くなる
 
 # 障害物検出範囲の指定及び確認用に表示
@@ -61,12 +60,27 @@ def distance_calculation(detframe, detframe_road):  # 白から黒の計算
     return im_gray_calc, im_gray_calc_road
 
 
-def risk_judgment(im_gray_calc, im_gray_calc_road):  # 距離に応じて3つのモードに分ける　距離情報を正規化
-    if (im_gray_calc >= 0) and (im_gray_calc <= 120) or (im_gray_calc_road <= 100) or (im_gray_calc_road >= 160):  # 右のコードは路面段差検知の条件式 :  # 停止モード
-        power_control = 0.0  # 距離情報を正規化
+def bamp_check(gray_calc_road, before_gray_calc_road):  # 段差チェック関数
+    before_hight = before_gray_calc_road
+    now_hight = gray_calc_road
+    bamp = abs(before_hight - now_hight)
+    if bamp > 28:
+        bamp_emagancy = 1
+        return bamp_emagancy
 
-    elif (im_gray_calc > 120) and (im_gray_calc <= 220):  # 減速モード
-        power_control = im_gray_calc / (256.0 * deceleration_ratio)  # 減速率  deceleration ratio
+    else:
+        bamp_emagancy = 0
+        return bamp_emagancy
+
+
+def risk_judgment(im_gray_calc, bamp):  # 距離に応じて3つのモードに分ける　距離情報を正規化
+    if (im_gray_calc >= 0) and (im_gray_calc <= 160) or (bamp == 1):  # 右のコードは路面段差検知の条件式 :  # 停止モード
+        power_control = 0.0  # 距離情報を正規化
+        print('bamp')
+
+    elif (im_gray_calc > 160) and (im_gray_calc <= 240):  # 減速モード
+        deceleration_ratio = 255 - im_gray_calc
+        power_control = (im_gray_calc / 255) - (deceleration_ratio * 0.0039)  # 減速率  deceleration ratio
 
     else:  # 通常走行モード
         power_control = 1.0  # 距離情報を正規化   減速率  deceleration ratio
@@ -74,6 +88,7 @@ def risk_judgment(im_gray_calc, im_gray_calc_road):  # 距離に応じて3つの
     return power_control
 
 
+i = 0
 # メインループ
 try:
     while True:
@@ -111,8 +126,17 @@ try:
 
         # 各ピクセルの距離情報統合、距離に基づく出力パワーの計算
         gray_calc, gray_calc_road = distance_calculation(detframe, detframe_road)  # 距離情報の統合
-        power = risk_judgment(gray_calc, gray_calc_road)                           # 距離に基づく出力パワーの計算
-        print(power)  # 出力パワーのチェック
+
+        if i == 0:
+            before_gray_calc_road = gray_calc_road
+            pass
+        else:
+            bamp = bamp_check(gray_calc_road, before_gray_calc_road)  # 路面段差チェック
+            before_gray_calc_road = gray_calc_road
+            power = risk_judgment(gray_calc, bamp)  # 距離に基づく出力パワーの計算
+        # print(power)  # 出力パワーのチェック
+
+        i = 1
 
         # def data_sending(power_control,SrcAddr, DstAddr):# 送信側プログラム(ローカル用)
         # ソケット作成
